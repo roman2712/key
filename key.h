@@ -9,58 +9,70 @@ class key
   private:
     byte k;
     byte p;
-    byte PINRead = 1;
-    byte keyState = 0;
-    byte keyStateOld = 0;
-    byte keyStatePress = 0;
-    unsigned long pressTime;
+    byte buttonStatePush;
+    byte lastButtonStatePush;
+	byte readingPush;
+	
+	byte buttonStatePop;
+	byte lastButtonStatePop;
+	byte readingPop;
+	
+    byte debounceDelay;
+    unsigned long lastDebounceTime;
+    unsigned long delay;
+
     byte readPin();
   public:
-    key(byte _k, byte _p)
+    key(byte _k, byte _p = NEGATIVE, byte mode = INPUT_PULLUP, byte _debounceDelay = 50)
     {
       k = _k;
       p = _p;
-      PINRead = !p;
-      pinMode(k, INPUT_PULLUP);
+      debounceDelay = _debounceDelay;
+      pinMode(k, mode);
     }
-    byte read(byte n = 0);
-    byte readPop(byte n = 0);
+    byte read(unsigned long = 0);
+    byte readPop();
 };
 
 byte key::readPin()
 {
-  if (digitalRead(k) != PINRead) {
-    delay(50);
-    PINRead = digitalRead(k);
-  }
-  if (p) return PINRead;
-  else return !PINRead;
+  if (p) return digitalRead(k);
+  else return !digitalRead(k);
 }
 
-byte key::read(byte n)
+byte key::read(unsigned long _delay)
 {
-  keyStateOld = keyState;
-  keyState = readPin();
-  if (keyState && keyState  != keyStateOld)
-  {
-    if (n == 0) return 1;
-    keyStatePress = 1;
-    pressTime = millis();
+  lastButtonStatePush = readingPush;
+  readingPush = readPin();
+
+  if (readingPush != lastButtonStatePush) {
+    lastDebounceTime = millis();
+    if (readingPush == HIGH) delay = debounceDelay + _delay;
+    else delay = debounceDelay;
   }
-  if (keyState && keyStatePress && ((millis() - pressTime) > n * 1000))
-  {
-    keyStatePress = 0;
-    return 1;
+
+  if ((millis() - lastDebounceTime) >  delay) {
+    if (readingPush != buttonStatePush) {
+      buttonStatePush = readingPush;
+      if (buttonStatePush == HIGH) return 1;
+    }
   }
   return 0;
 }
 
-byte key::readPop(byte n)
+byte key::readPop()
 {
-  keyStateOld = keyState;
-  keyState = readPin();
-  if (keyState && keyState  != keyStateOld) pressTime = millis();
-  if (!keyState && keyState != keyStateOld && (millis() - pressTime) > n * 1000) return 1;
+  lastButtonStatePop = readingPop;;
+  readingPop = readPin();
+
+  if (readingPop != lastButtonStatePop) lastDebounceTime = millis();
+
+  if ((millis() - lastDebounceTime) >  delay) {
+    if (readingPop != buttonStatePop) {
+      buttonStatePop= readingPop;;
+      if (buttonStatePop == LOW) return 1;
+    }
+  }
   return 0;
 }
 
