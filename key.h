@@ -9,20 +9,22 @@ class key
   private:
     byte k;
     byte p;
+	
+	byte reading;
+		
     byte buttonStatePush;
     byte lastButtonStatePush;
-	byte readingPush;
+
 	
 	byte buttonStatePop;
 	byte lastButtonStatePop;
-	byte readingPop;
 	
     byte debounceDelay;
     unsigned long lastDebounceTime;
     unsigned long delay;
 
-    byte readPin();
   public:
+	byte readPin();
     key(byte _k, byte _p = NEGATIVE, byte mode = INPUT_PULLUP, byte _debounceDelay = 50)
     {
       k = _k;
@@ -42,18 +44,18 @@ byte key::readPin()
 
 byte key::read(unsigned long _delay)
 {
-  lastButtonStatePush = readingPush;
-  readingPush = readPin();
+  lastButtonStatePush = reading;
+  reading = readPin();
 
-  if (readingPush != lastButtonStatePush) {
+  if (reading != lastButtonStatePush) {
     lastDebounceTime = millis();
-    if (readingPush == HIGH) delay = debounceDelay + _delay;
+    if (reading == HIGH) delay = debounceDelay + _delay;
     else delay = debounceDelay;
   }
 
   if ((millis() - lastDebounceTime) >  delay) {
-    if (readingPush != buttonStatePush) {
-      buttonStatePush = readingPush;
+    if (reading != buttonStatePush) {
+      buttonStatePush = reading;
       if (buttonStatePush == HIGH) return 1;
     }
   }
@@ -62,14 +64,14 @@ byte key::read(unsigned long _delay)
 
 byte key::readPop()
 {
-  lastButtonStatePop = readingPop;;
-  readingPop = readPin();
+  lastButtonStatePop = reading;
+  reading = readPin();
 
-  if (readingPop != lastButtonStatePop) lastDebounceTime = millis();
+  if (reading != lastButtonStatePop) lastDebounceTime = millis();
 
   if ((millis() - lastDebounceTime) >  delay) {
-    if (readingPop != buttonStatePop) {
-      buttonStatePop= readingPop;;
+    if (reading != buttonStatePop) {
+      buttonStatePop= reading;;
       if (buttonStatePop == LOW) return 1;
     }
   }
