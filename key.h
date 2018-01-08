@@ -31,6 +31,8 @@ class key
       p = _p;
       debounceDelay = _debounceDelay;
       pinMode(k, mode);
+	  buttonStatePush = readPin();
+	  lastButtonStatePush = readPin();
     }
     byte read(unsigned long = 0);
     byte readPop();
