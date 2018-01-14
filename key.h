@@ -31,8 +31,7 @@ class key
       p = _p;
       debounceDelay = _debounceDelay;
       pinMode(k, mode);
-	  buttonStatePush = readPin();
-	  lastButtonStatePush = buttonStatePush;
+	  reset();
     }
     byte read(unsigned long = 0);
     byte readPop();
@@ -41,8 +40,7 @@ class key
 
 void key::reset()
 {
-	buttonStatePush = readPin();
-	lastButtonStatePush = buttonStatePush;
+	buttonStatePush = lastButtonStatePush = buttonStatePop = lastButtonStatePop = readPin();
 }
 
 byte key::readPin()
@@ -80,7 +78,7 @@ byte key::readPop()
 
   if ((millis() - lastDebounceTime) >  delay) {
     if (reading != buttonStatePop) {
-      buttonStatePop= reading;;
+      buttonStatePop= reading;
       if (buttonStatePop == LOW) return 1;
     }
   }
