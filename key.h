@@ -4,38 +4,40 @@
 #define POSITIVE 1
 #define NEGATIVE 0
 
-struct flags_struct{
-	unsigned reading : 1;
-    unsigned buttonStatePush : 1;
-    unsigned lastButtonStatePush : 1;
-	unsigned buttonStatePop : 1;
-	unsigned lastButtonStatePop : 1;
+struct flags_struct {
+  unsigned reading : 1;
+  unsigned buttonStatePush : 1;
+  unsigned lastButtonStatePush : 1;
+  unsigned buttonStatePop : 1;
+  unsigned lastButtonStatePop : 1;
+  unsigned buttonState : 1;
+  unsigned lastButtonState : 1;
 };
 
 class key
 {
   private:
-	flags_struct flags;
-	
+    flags_struct flags;
+
     byte debounceDelay;
     unsigned long lastDebounceTime;
-	
-	virtual byte readPin();
 
   public:
     key(byte _debounceDelay = 50)
     {
       debounceDelay = _debounceDelay;
     }
-	
-	byte readPush(unsigned long = 0);
+
+    virtual byte readPin();
+    byte readPush(unsigned long = 0);
     byte readPop(unsigned long = 0);
-	void reset();
+    byte read(unsigned long = 0);
+    void reset();
 };
 
 void key::reset()
 {
-	flags.buttonStatePush = flags.lastButtonStatePush = flags.buttonStatePop = flags.lastButtonStatePop = readPin();
+  flags.buttonStatePush = flags.lastButtonStatePush = flags.buttonStatePop = flags.lastButtonStatePop = flags.lastButtonState = flags.buttonState = readPin();
 }
 
 byte key::readPush(unsigned long _delay)
@@ -70,22 +72,35 @@ byte key::readPop(unsigned long _delay)
   return 0;
 }
 
+byte key::read(unsigned long _delay)
+{
+  static byte res;
+  flags.lastButtonState = flags.reading;
+  flags.reading = readPin();
+
+  if (flags.reading != flags.lastButtonState) lastDebounceTime = millis();
+
+  if ((millis() - lastDebounceTime) >  debounceDelay + _delay) {
+    res = flags.reading;
+  }
+  return res;
+}
+
 class digitalKey : public key
 {
-	private:
-	byte k;
+  private:
+    byte k;
     byte p;
-	
-	byte readPin();
-	
-	public:
-	digitalKey(byte _k, byte _p = NEGATIVE, byte mode = INPUT_PULLUP, byte _debounceDelay = 50) : key(_debounceDelay)
-	{
-	  k = _k;
+
+  public:
+    byte readPin();
+    digitalKey(byte _k, byte _p = NEGATIVE, byte mode = INPUT_PULLUP, byte _debounceDelay = 50) : key(_debounceDelay)
+    {
+      k = _k;
       p = _p;
-	  pinMode(k, mode);
-	  reset();
-	}
+      pinMode(k, mode);
+      reset();
+    }
 };
 
 byte digitalKey::readPin()
@@ -96,29 +111,28 @@ byte digitalKey::readPin()
 
 class analogKey : public key
 {
-	private:
-	byte k;
+  private:
+    byte k;
     int value_min;
-	int value_max;
-	
-	byte readPin();
-	
-	public:
-	analogKey(byte _k, int _value, byte _range = 50, byte _debounceDelay = 50): key(_debounceDelay)
-	{
-	  k = _k;
-	  value_min = _value-_range;
-	  value_max = _value+_range;
-	  pinMode(k, INPUT);
-	  reset();
-	}
+    int value_max;
+
+  public:
+    byte readPin();
+    analogKey(byte _k, int _value, byte _range = 50, byte _debounceDelay = 50): key(_debounceDelay)
+    {
+      k = _k;
+      value_min = _value - _range;
+      value_max = _value + _range;
+      pinMode(k, INPUT);
+      reset();
+    }
 };
 
 byte analogKey::readPin()
 {
-	int temp = analogRead(k);
-	if (value_min < temp && temp < value_max) return true;
-	else return false;
+  int temp = analogRead(k);
+  if (value_min < temp && temp < value_max) return true;
+  else return false;
 }
 
 #endif
