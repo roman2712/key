@@ -29,15 +29,45 @@ class key
     }
 
     virtual byte readPin();
-    byte readPush(unsigned long = 0);
+    byte readPushPlus(unsigned long = 500);
+	byte readPush(unsigned long = 0);
     byte readPop(unsigned long = 0);
     byte read(unsigned long = 0);
     void reset();
+	
+	unsigned int delay_time = 0;
+	unsigned int delay_flag = 0;
+	unsigned long previousMillis = 0;
 };
 
 void key::reset()
 {
   flags.buttonStatePush = flags.lastButtonStatePush = flags.buttonStatePop = flags.lastButtonStatePop = flags.lastButtonState = flags.buttonState = readPin();
+}
+
+byte key::readPushPlus(unsigned long _delay)
+{
+  
+  byte res = 0;
+  if (readPin())
+  {
+	if ((millis() - previousMillis) > delay_time)
+	{
+		res = 1;
+		previousMillis = millis();
+		++delay_flag;
+		if (delay_flag > 40) delay_time = _delay / 16;
+		else if (delay_flag > 20) delay_time = _delay / 8;
+		else if (delay_flag > 1) delay_time = _delay / 4;
+		else delay_time = _delay;
+	}
+  }
+  else
+  {
+	delay_time = 0;
+	delay_flag = 0;
+  }
+  return res;
 }
 
 byte key::readPush(unsigned long _delay)
@@ -133,6 +163,26 @@ byte analogKey::readPin()
   int temp = analogRead(k);
   if (value_min < temp && temp < value_max) return true;
   else return false;
+}
+
+class functionKey : public key
+{
+  private:
+    byte (*f)();
+	
+  public:
+    byte readPin();
+    functionKey(byte (*_f)(), byte _debounceDelay = 0): key(_debounceDelay)
+    {
+      f = _f;
+      reset();
+    }
+};
+
+byte functionKey::readPin()
+{
+  if (f()) return 1;
+  else return 0;
 }
 
 #endif
